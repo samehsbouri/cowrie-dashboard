@@ -1,17 +1,6 @@
 version: '3.8'
 
 services:
-  cowrie:
-    image: docker-cowrie
-    restart: always
-    ports:
-      - "2222:2222"
-      - "2223:2223"
-    volumes:
-      - cowrie-etc:/cowrie/cowrie-git/etc
-      - cowrie-var:/cowrie/cowrie-git/var/lib/cowrie
-      - cowrie-log:/cowrie/cowrie-git/var/log/cowrie
-
   dashboard:
     build: .
     ports:
@@ -19,10 +8,9 @@ services:
     volumes:
       - cowrie-log:/cowrie/logs:ro
       - cowrie-var:/cowrie/var/lib/cowrie:ro
-    depends_on:
-      - cowrie
 
 volumes:
-  cowrie-etc:
   cowrie-var:
+    external: true
   cowrie-log:
+    external: true
