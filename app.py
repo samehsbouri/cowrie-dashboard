@@ -5,8 +5,19 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-LOGS_DIR = os.environ.get('LOGS_DIR', '/cowrie/logs')
+LOGS_DIR = os.environ.get('LOGS_DIR', '/cowrie/logs/cowrie')
 STATE_DIR = os.environ.get('STATE_DIR', '/cowrie/var/lib/cowrie')
+
+
+@app.route('/api/debug')
+def debug_paths():
+    return jsonify({
+        'LOGS_DIR': LOGS_DIR,
+        'STATE_DIR': STATE_DIR,
+        'logs_exists': os.path.exists(LOGS_DIR),
+        'state_exists': os.path.exists(STATE_DIR),
+        'cowrie_json_exists': os.path.exists(os.path.join(LOGS_DIR, 'cowrie.json')),
+    })
 
 
 @app.route('/')
