@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cowrie Attack Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; min-height: 100vh; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #30363d; }
+        h1 { color: #58a6ff; font-size: 24px; }
+        .last-updated { color: #8b949e; font-size: 14px; }
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 30px; }
+        .stat-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; text-align: center; }
+        .stat-value { font-size: 32px; font-weight: bold; color: #58a6ff; }
+        .stat-label { color: #8b949e; font-size: 14px; margin-top: 5px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab { padding: 10px 20px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; color: #c9d1d9; transition: all 0.2s; }
+        .tab:hover { background: #21262d; }
+        .tab.active { background: #238636; border-color: #238636; color: white; }
+        .panel { display: none; }
+        .panel.active { display: block; }
+        table { width: 100%; border-collapse: collapse; background: #161b22; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #30363d; }
+        th { background: #21262d; color: #8b949e; font-weight: 600; font-size: 12px; text-transform: uppercase; }
+        tr:hover { background: #21262d; }
+        .btn { padding: 6px 12px; background: #238636; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 13px; }
+        .btn:hover { background: #2ea043; }
+        .btn-small { padding: 4px 8px; font-size: 12px; }
+        .btn-view { background: #1f6feb; }
+        .btn-view:hover { background: #388bfd; }
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 100; }
+        .modal.active { display: flex; align-items: center; justify-content: center; }
+        .modal-content { background: #161b22; border: 1px solid #30363d; border-radius: 8px; width: 90%; max-width: 900px; max-height: 80vh; overflow: hidden; display: flex; flex-direction: column; }
+        .modal-header { padding: 15px 20px; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h2 { color: #58a6ff; font-size: 18px; }
+        .close { background: none; border: none; color: #8b949e; font-size: 24px; cursor: pointer; }
+        .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+        .terminal { background: #0d1117; border: 1px solid #30363d; border-radius: 4px; padding: 15px; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word; min-height: 300px; max-height: 400px; overflow-y: auto; color: #c9d1d9; }
+        .command-line { color: #7ee787; }
+        .output-line { color: #c9d1d9; }
+        .playback-controls { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
+        .playback-controls button { padding: 8px 16px; background: #21262d; border: 1px solid #30363d; border-radius: 4px; color: #c9d1d9; cursor: pointer; }
+        .playback-controls button:hover { background: #30363d; }
+        .playback-controls button.active { background: #238636; color: white; }
+        .playback-controls select { padding: 8px; background: #21262d; border: 1px solid #30363d; border-radius: 4px; color: #c9d1d9; }
+        .progress-bar { height: 4px; background: #30363d; border-radius: 2px; margin-top: 10px; }
+        .progress-fill { height: 100%; background: #238636; border-radius: 2px; width: 0%; transition: width 0.3s; }
+        .download-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-bottom: 1px solid #30363d; }
+        .download-row:hover { background: #21262d; }
+        .download-name { color: #58a6ff; }
+        .download-size { color: #8b949e; font-size: 13px; }
+        .empty { text-align: center; padding: 40px; color: #8b949e; }
+        @media (max-width: 768px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Cowrie Attack Dashboard</h1>
+            <span class="last-updated">Last updated: <span id="lastUpdated">-</span></span>
+        </header>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalSessions">0</div>
+                <div class="stat-label">Total Sessions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="uniqueIPs">0</div>
+                <div class="stat-label">Unique IPs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalCommands">0</div>
+                <div class="stat-label">Commands</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalDownloads">0</div>
+                <div class="stat-label">Downloads</div>
+            </div>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" data-tab="sessions">Sessions</button>
+            <button class="tab" data-tab="downloads">Downloads</button>
+        </div>
+        
+        <div class="panel active" id="sessionsPanel">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>IP Address</th>
+                        <th>Username</th>
+                        <th>Password</th>
+                        <th>Duration</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="sessionsTable"></tbody>
+            </table>
+        </div>
+        
+        <div class="panel" id="downloadsPanel">
+            <div id="downloadsList"></div>
+        </div>
+    </div>
+    
+    <div class="modal" id="sessionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Session Details</h2>
+                <button class="close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="playback-controls">
+                    <button id="playBtn" onclick="playReplay()">Play</button>
+                    <button id="pauseBtn" onclick="pauseReplay()">Pause</button>
+                    <button id="resetBtn" onclick="resetReplay()">Reset</button>
+                    <select id="speedSelect" onchange="setSpeed(this.value)">
+                        <option value="1">1x</option>
+                        <option value="2">2x</option>
+                        <option value="5">5x</option>
+                        <option value="10">10x</option>
+                    </select>
+                    <span id="progressText">0%</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+                <div class="terminal" id="terminal"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let sessions = [];
+        let currentSession = null;
+        let replayData = null;
+        let replayIndex = 0;
+        let replayTimeout = null;
+        let isPlaying = false;
+        let playbackSpeed = 1;
+        
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const stats = await res.json();
+                document.getElementById('totalSessions').textContent = stats.total_sessions;
+                document.getElementById('uniqueIPs').textContent = stats.unique_ips;
+                document.getElementById('totalCommands').textContent = stats.total_commands;
+                document.getElementById('totalDownloads').textContent = stats.downloads;
+            } catch(e) { console.error('Stats error:', e); }
+        }
+        
+        async function loadSessions() {
+            try {
+                const res = await fetch('/api/sessions');
+                sessions = await res.json();
+                renderSessions();
+            } catch(e) { console.error('Sessions error:', e); }
+        }
+        
+        function renderSessions() {
+            const tbody = document.getElementById('sessionsTable');
+            if (sessions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty">No sessions recorded yet</td></tr>';
+                return;
+            }
+            tbody.innerHTML = sessions.map(s => `
+                <tr>
+                    <td>${formatTime(s.timestamp)}</td>
+                    <td>${s.src_ip || '-'}</td>
+                    <td>${s.username || '-'}</td>
+                    <td>${s.password || '-'}</td>
+                    <td>${s.duration ? s.duration.toFixed(1) + 's' : '-'}</td>
+                    <td>
+                        <button class="btn btn-small btn-view" onclick="viewSession('${s.session}')">View</button>
+                        <button class="btn btn-small" onclick="replaySession('${s.session}')">Replay</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        async function viewSession(sessionId) {
+            try {
+                const res = await fetch('/api/session/' + sessionId);
+                const data = await res.json();
+                showSessionDetails(data);
+            } catch(e) { console.error('View error:', e); }
+        }
+        
+        function showSessionDetails(data) {
+            const terminal = document.getElementById('terminal');
+            let html = '';
+            data.commands.forEach(cmd => {
+                if (cmd.input) html += `<div class="command-line">$ ${cmd.input}</div>`;
+                if (cmd.output) html += `<div class="output-line">${escapeHtml(cmd.output)}</div>`;
+            });
+            terminal.innerHTML = html || '<div class="empty">No commands recorded</div>';
+            document.getElementById('sessionModal').classList.add('active');
+            document.querySelector('.modal-header h2').textContent = 'Session: ' + data.session_id.substring(0, 8);
+            currentSession = data.session_id;
+        }
+        
+        async function replaySession(sessionId) {
+            try {
+                const res = await fetch('/api/tty/' + sessionId);
+                replayData = await res.json();
+                if (replayData.error) {
+                    alert('TTY log not found');
+                    return;
+                }
+                replayIndex = 0;
+                currentSession = sessionId;
+                resetReplay();
+                document.getElementById('sessionModal').classList.add('active');
+                document.querySelector('.modal-header h2').textContent = 'TTY Replay: ' + sessionId.substring(0, 8);
+            } catch(e) { console.error('Replay error:', e); alert('Failed to load TTY log'); }
+        }
+        
+        function playReplay() {
+            if (!replayData || !replayData.data) return;
+            isPlaying = true;
+            document.getElementById('playBtn').classList.add('active');
+            document.getElementById('pauseBtn').classList.remove('active');
+            playNextChunk();
+        }
+        
+        function playNextChunk() {
+            if (!isPlaying || replayIndex >= replayData.data.length) {
+                isPlaying = false;
+                document.getElementById('playBtn').classList.remove('active');
+                return;
+            }
+            
+            const chunk = replayData.data[replayIndex];
+            const terminal = document.getElementById('terminal');
+            terminal.innerHTML += escapeHtml(chunk);
+            terminal.scrollTop = terminal.scrollHeight;
+            
+            const timing = replayData.timing ? replayData.timing[replayIndex] : 0.05;
+            replayIndex++;
+            
+            const progress = (replayIndex / replayData.data.length) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('progressText').textContent = Math.round(progress) + '%';
+            
+            replayTimeout = setTimeout(playNextChunk, timing * 1000 / playbackSpeed);
+        }
+        
+        function pauseReplay() {
+            isPlaying = false;
+            clearTimeout(replayTimeout);
+            document.getElementById('playBtn').classList.remove('active');
+            document.getElementById('pauseBtn').classList.add('active');
+        }
+        
+        function resetReplay() {
+            pauseReplay();
+            replayIndex = 0;
+            document.getElementById('terminal').innerHTML = '';
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('progressText').textContent = '0%';
+            document.getElementById('pauseBtn').classList.remove('active');
+        }
+        
+        function setSpeed(speed) {
+            playbackSpeed = parseInt(speed);
+        }
+        
+        async function loadDownloads() {
+            try {
+                const res = await fetch('/api/downloads');
+                const downloads = await res.json();
+                renderDownloads(downloads);
+            } catch(e) { console.error('Downloads error:', e); }
+        }
+        
+        function renderDownloads(list) {
+            const container = document.getElementById('downloadsList');
+            if (list.length === 0) {
+                container.innerHTML = '<div class="empty">No malware downloads captured</div>';
+                return;
+            }
+            container.innerHTML = list.map(d => `
+                <div class="download-row">
+                    <div>
+                        <div class="download-name">${escapeHtml(d.filename)}</div>
+                        <div class="download-size">${formatTime(d.timestamp)} - ${formatSize(d.size)}</div>
+                    </div>
+                    <button class="btn btn-small" onclick="window.location.href='/api/download/${encodeURIComponent(d.filename)}'">Download</button>
+                </div>
+            `).join('');
+        }
+        
+        function formatTime(ts) {
+            if (!ts) return '-';
+            return new Date(ts).toLocaleString();
+        }
+        
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+            return (bytes/1024/1024).toFixed(1) + ' MB';
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        
+        function closeModal() {
+            document.getElementById('sessionModal').classList.remove('active');
+            pauseReplay();
+            replayData = null;
+        }
+        
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab + 'Panel').classList.add('active');
+                if (tab.dataset.tab === 'downloads') loadDownloads();
+            });
+        });
+        
+        document.getElementById('sessionModal').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) closeModal();
+        });
+        
+        loadStats();
+        loadSessions();
+        
+        setInterval(() => {
+            loadStats();
+            loadSessions();
+        }, 10000);
+        
+        document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+    </script>
+</body>
+</html>
