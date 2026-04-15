@@ -6,11 +6,9 @@ services:
     ports:
       - "8443:8443"
     volumes:
-      - cowrie-log:/cowrie/logs:ro
       - cowrie-var:/cowrie/var/lib/cowrie:ro
+      - cowrie-log:/cowrie/logs:ro
 
 volumes:
   cowrie-var:
-    external: true
   cowrie-log:
-    external: true
