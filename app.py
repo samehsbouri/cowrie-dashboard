@@ -17,6 +17,7 @@ def debug_paths():
         'logs_exists': os.path.exists(LOGS_DIR),
         'state_exists': os.path.exists(STATE_DIR),
         'cowrie_json_exists': os.path.exists(os.path.join(LOGS_DIR, 'cowrie.json')),
+        'logs_dir_contents': os.listdir(LOGS_DIR) if os.path.exists(LOGS_DIR) else [],
     })
 
 
