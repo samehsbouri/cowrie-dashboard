@@ -36,30 +36,32 @@ def get_sessions():
             for line in f:
                 try:
                     entry = json.loads(line.strip())
-                    if entry.get('eventId') == 'cowrie.session.connect':
+                    event = entry.get('eventId') or entry.get('eventId') or entry.get('type')
+                    
+                    if event in ['cowrie.session.connect', 'cowrie.client.connect', 'session connect', 'connect']:
                         sessions.append({
-                            'session': entry.get('session'),
-                            'timestamp': entry.get('timestamp'),
-                            'src_ip': entry.get('src_ip'),
-                            'dst_ip': entry.get('dst_ip'),
-                            'dst_port': entry.get('dst_port'),
+                            'session': entry.get('session') or entry.get('sessionid'),
+                            'timestamp': entry.get('timestamp') or entry.get('time'),
+                            'src_ip': entry.get('src_ip') or entry.get('src_ip') or entry.get('ip'),
+                            'dst_ip': entry.get('dst_ip') or entry.get('dst_ip'),
+                            'dst_port': entry.get('dst_port') or entry.get('port'),
                             'protocol': entry.get('protocol', 'ssh'),
                             'hassh': entry.get('hassh'),
                             'ssh_version': entry.get('ssh_version'),
                         })
-                    elif entry.get('eventId') == 'cowrie.login.success':
-                        sid = entry.get('session')
+                    elif event in ['cowrie.login.success', 'cowrie.auth.success', 'login success', 'auth.success']:
+                        sid = entry.get('session') or entry.get('sessionid')
                         for s in sessions:
                             if s['session'] == sid:
-                                s['username'] = entry.get('username')
-                                s['password'] = entry.get('password')
-                    elif entry.get('eventId') == 'cowrie.session.closed':
-                        sid = entry.get('session')
+                                s['username'] = entry.get('username') or entry.get('user')
+                                s['password'] = entry.get('password') or entry.get('pass')
+                    elif event in ['cowrie.session.closed', 'cowrie.session.close', 'session closed']:
+                        sid = entry.get('session') or entry.get('sessionid')
                         for s in sessions:
                             if s['session'] == sid:
                                 s['duration'] = entry.get('duration')
                                 s['closed'] = True
-                except json.JSONDecodeError:
+                except (json.JSONDecodeError, KeyError):
                     continue
     
     sessions.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
@@ -77,21 +79,22 @@ def get_session(session_id):
             for line in f:
                 try:
                     entry = json.loads(line.strip())
-                    if entry.get('session') == session_id:
-                        event = entry.get('eventId', '')
-                        if event == 'cowrie.command.input':
+                    entry_session = entry.get('session') or entry.get('sessionid')
+                    if entry_session == session_id:
+                        event = entry.get('eventId') or entry.get('type') or ''
+                        if event in ['cowrie.command.input', 'cowrie.client.input', 'command']:
                             commands.append({
-                                'timestamp': entry.get('timestamp'),
-                                'input': entry.get('input'),
+                                'timestamp': entry.get('timestamp') or entry.get('time'),
+                                'input': entry.get('input') or entry.get('cmd') or entry.get('command'),
                             })
-                        elif event == 'cowrie.command.success':
+                        elif event in ['cowrie.command.success', 'cowrie.command.output']:
                             commands.append({
-                                'timestamp': entry.get('timestamp'),
+                                'timestamp': entry.get('timestamp') or entry.get('time'),
                                 'output': entry.get('output', ''),
                                 'success': True,
                             })
-                        elif event == 'cowrie.session.closed':
-                            tty_file = entry.get('ttylog')
+                        elif event in ['cowrie.session.closed', 'cowrie.session.close']:
+                            tty_file = entry.get('ttylog') or entry.get('tty')
                 except json.JSONDecodeError:
                     continue
     
