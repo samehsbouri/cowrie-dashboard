@@ -7,10 +7,10 @@ services:
       - "8443:8443"
     volumes:
       - cowrie-custom_cowrie-var:/cowrie/var/lib/cowrie:ro
-      - cowrie-custom_cowrie-log:/cowrie/logs:ro
+      - docker_cowrie-log:/cowrie/logs:ro
 
 volumes:
   cowrie-custom_cowrie-var:
     external: true
-  cowrie-custom_cowrie-log:
+  docker_cowrie-log:
     external: true
