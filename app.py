@@ -5,7 +5,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-LOGS_DIR = os.environ.get('LOGS_DIR', '/cowrie/logs/cowrie')
+LOGS_DIR = os.environ.get('LOGS_DIR', '/cowrie/logs')
 STATE_DIR = os.environ.get('STATE_DIR', '/cowrie/var/lib/cowrie')
 
 
